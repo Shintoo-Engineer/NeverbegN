@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title> NeverbegN (Single-file Demo)</title>
+  <style>
+    :root{--accent:#f6e123;--muted:#290ce4;--bg:lab(52.38% 77.76 62.63);--card:#ffffff}
+    *{box-sizing:border-box;font-family:Inter,ui-sans-serif,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial}
+    body{margin:0;background:linear-gradient(180deg,hsla(249, 78%, 2%, 0.932) 0%,#000001 60%);color:#01e31c}
+    .app{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+    header{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:transparent}
+    .brand{display:flex;gap:12px;align-items:center}
+    .logo{width:44px;height:44px;border-radius:10px;background:var(--accent);display:flex;align-items:center;justify-content:center;color:#0921f7;font-weight:800}
+    .title{font-size:18px;font-weight:700}
+    .sidebar{padding:18px;background:transparent; border-right:1px solid rgb(4, 4, 228)}
+    .nav{display:flex;flex-direction:column;gap:8px}
+    .nav button{background:var(--card);border:0;padding:10px;border-radius:8px;text-align:left;cursor:pointer;box-shadow:0 1px 2px rgba(5, 11, 26, 0.04)}
+    .nav button.active{outline:4px solid rgba(22, 32, 237, 0.936)}
+    main{padding:20px}
+    .grid{display:grid;grid-template-columns:1fr 360px;gap:20px}
+    .card{background:var(--card);padding:16px;border-radius:12px;box-shadow:0 6px 18px rgba(128, 245, 247, 0.9)}
+    .h{font-weight:700;margin-bottom:8px}
+    .muted{color:var(--muted);font-size:13px}
+
+    /* Reader */
+    .reader-controls{display:flex;gap:8px;align-items:center}
+    select, input[type=text], textarea{padding:8px;border-radius:8px;border:1px solid #18036b;width:100%}
+    textarea{min-height:90px}
+
+    /* Notes list */
+    .notes-list{display:grid;gap:8px}
+    .note-item{padding:10px;border-radius:8px;border:1px dashed rgba(14, 216, 243, 0.04);display:flex;justify-content:space-between}
+
+    /* Timetable */
+    .timetable{display:flex;flex-direction:column;gap:10px}
+    .tt-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+    .tt-cell{background:#030965;padding:8px;border-radius:6px;border:1px solid rgba(196, 12, 12, 0.03);min-height:54px}
+
+    /* Chat */
+    .chat{display:flex;flex-direction:column;gap:8px;height:420px}
+    .messages{overflow:auto;padding:8px;flex:1;display:flex;flex-direction:column;gap:8px}
+    .msg{max-width:75%;padding:8px;border-radius:10px}
+    .msg.user{align-self:flex-end;background:linear-gradient(90deg,#f7f584,#a8ecf0);color:rgb(24, 5, 198)}
+    .msg.ai{align-self:flex-start;background:#fcf06c}
+    .chat-input{display:flex;gap:8px}
+
+    /* Responsive */
+    @media (max-width:900px){.app{grid-template-columns:1fr} .sidebar{display:none} .grid{grid-template-columns:1fr}}
+
+    /* small helpers */
+    .row{display:flex;gap:8px;align-items:center}
+    .pill{padding:6px 10px;border-radius:999px;background:#edf10a;font-size:13px}
+    .link{color:var(--accent);cursor:pointer}
+
+    footer{grid-column:1/-1;padding:14px 20px;color:var(--muted);font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="brand">
+        <div class="logo">N</div>
+        <div>
+          <div class="title">NeverbegN</div>
+          <div class="muted">AI study friend, planner & motivator</div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="pill" id="streak">Streak: 0 🔥</div>
+        <button id="notify-perm">Enable Notifications</button>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <div class="nav">
+        <button class="active" data-view="dashboard">Dashboard</button>
+        <button data-view="reader">Reader (TTS)</button>
+        <button data-view="timetable">Smart Timetable</button>
+        <button data-view="notes">Notes & Files</button>
+        <button data-view="bruddy">NeverbegN (AI Friend)</button>
+        <button data-view="pomodoro">Pomodoro</button>
+        <button data-view="resources">Resources & Videos</button>
+        <button data-view="settings">Settings</button>
+      </div>
+      <hr style="margin:12px 0;border:none;height:1px;background:linear-gradient(90deg,transparent,#49fb09,transparent)">
+      <div class="muted">Quick Actions</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+        <button id="add-note">+ New Note</button>
+        <button id="generate-timetable">Generate Timetable</button>
+        <button id="start-pomo-small">Start 25m Pomodoro</button>
+      </div>
+    </aside>
+
+    <main>
+      <div class="grid">
+        <section>
+          <div id="view-dashboard" class="card view">
+            <div class="h">Dashboard</div>
+            <div class="row" style="justify-content:space-between">
+              <div style="flex:1;margin-right:12px">
+                <div class="card" style="margin-bottom:12px">
+                  <div class="h">Today's Plan</div>
+                  <div id="today-plan" class="muted">No plan yet — generate your timetable to auto-populate.</div>
+                </div>
+
+                <div class="card">
+                  <div class="h">Motivation & Insights</div>
+                  <div id="quote" style="font-size:16px;margin-bottom:8px">Loading quote...</div>
+                  <div class="muted" id="progress">Progress: 0 XP • 0 points</div>
+                </div>
+              </div>
+
+              <aside style="width:320px;display:flex;flex-direction:column;gap:12px">
+                <div class="card">
+                  <div class="h">NeverbegN Quick Chat</div>
+                  <div id="NeverbegN-quick" class="muted">Say hi to NeverbegN for a quick motivational message.</div>
+                  <div style="display:flex;gap:8px;margin-top:8px">
+                    <input id="NeverbegN" placeholder="Ask NeverbegN (e.g., 'Motivate me')" />
+                    <button id="NeverbegN-quick-btn">Ask</button>
+                  </div>
+                </div>
+
+                <div class="card">
+                  <div class="h">Rewards & Badges</div>
+                  <div id="badges" class="muted">No badges yet — complete tasks to earn badges.</div>
+                </div>
+
+              </aside>
+            </div>
+          </div>
+
+          <div id="view-reader" class="card view" style="display:none">
+            <div class="h">Reader (Text-to-Speech)</div>
+            <textarea id="reader-text" placeholder="Paste text or your notes here...">Welcome to NeverbegN — your AI study friend. Paste any text and press Read.</textarea>
+            <div class="row" style="margin-top:8px">
+              <select id="voice-select"></select>
+              <select id="rate"><option value="1">Rate 1x</option><option value="0.9">0.9x</option><option value="1.25">1.25x</option><option value="1.5">1.5x</option></select>
+              <button id="read-btn">Read</button>
+              <button id="stop-btn">Stop</button>
+            </div>
+            <div style="margin-top:10px" class="muted">Also supports voice chat below.</div>
+          </div>
+
+          <div id="view-timetable" class="card view" style="display:none">
+            <div class="h">Smart Timetable</div>
+            <div style="display:flex;gap:8px;margin-bottom:8px">
+              <input id="tt-subjects" placeholder="Subjects comma separated e.g. Math,Physics,Chem" />
+              <input id="tt-hours" placeholder="Hours per day (number)" style="width:120px" />
+              <button id="tt-generate">Generate</button>
+            </div>
+            <div class="timetable">
+              <div class="tt-grid" id="tt-grid">
+                <!-- 7 day cells created by JS -->
+              </div>
+              <div style="margin-top:8px" class="muted">You can edit cells to add modules and save to your calendar (local only).</div>
+            </div>
+          </div>
+
+          <div id="view-notes" class="card view" style="display:none">
+            <div class="h">Notes & Files</div>
+            <div style="display:flex;gap:8px;margin-bottom:8px">
+              <input id="note-title" placeholder="Title" style="width:160px" />
+              <input id="note-tags" placeholder="Tags (comma)" />
+              <button id="save-note">Save Note</button>
+              <input type="file" id="file-upload" />
+            </div>
+            <div style="display:flex;gap:8px">
+              <textarea id="note-body" placeholder="Write or paste notes here..."></textarea>
+              <div style="width:320px;display:flex;flex-direction:column;gap:8px">
+                <div class="card">
+                  <div class="h">Saved Notes</div>
+                  <div class="notes-list" id="notes-list"></div>
+                </div>
+                <div class="card">
+                  <div class="h">Previous Year Papers & Uploads</div>
+                  <div id="uploads-list" class="muted">Upload files — stored in the browser for demo purposes.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="view-bruddy" class="card view" style="display:none">
+            <div class="h">bruddy— AI Friend</div>
+            <div class="chat card" style="padding:8px">
+              <div class="messages" id="messages"></div>
+              <div class="chat-input">
+                <input id="chat-in" placeholder="Type to NeverbegN..." />
+                <button id="send-chat">Send</button>
+                <button id="voice-chat">🎤</button>
+              </div>
+            </div>
+            <div class="muted">NeverbegN can motivate, quiz, or suggest study plans.</div>
+          </div>
+
+          <div id="view-pomodoro" class="card view" style="display:none">
+            <div class="h">Pomodoro Timer</div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input id="pomo-mins" type="number" value="25" style="width:90px" />
+              <button id="pomo-start">Start</button>
+              <button id="pomo-stop">Stop</button>
+              <div id="pomo-display" class="muted">25:00</div>
+            </div>
+            <div style="margin-top:10px" class="muted">Modes: Silent, Discussion, Pomodoro. Choose in Settings.</div>
+          </div>
+
+          <div id="view-resources" class="card view" style="display:none">
+            <div class="h">Resources & Videos</div>
+            <div style="display:flex;gap:8px;margin-bottom:8px">
+              <input id="resource-title" placeholder="Title" />
+              <input id="resource-link" placeholder="YouTube or link" />
+              <button id="add-resource">Add</button>
+            </div>
+            <div id="resources-list"></div>
+          </div>
+
+          <div id="view-settings" class="card view" style="display:none">
+            <div class="h">Settings</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <label>Skill Level
+                <select id="skill-level"><option>Beginner</option><option>Intermediate</option><option>Pro</option></select>
+              </label>
+              <label>Study Style
+                <select id="study-style"><option>Silent</option><option>Discussion</option><option>Pomodoro</option></select>
+              </label>
+              <label>Daily Min Motivator
+                <input id="daily-motivator" type="checkbox" checked />
+              </label>
+            </div>
+            <div style="margin-top:10px" class="muted">The demo stores everything locally in your browser (localStorage). To make persistent and shareable, add a backend API.</div>
+          </div>
+
+        </section>
+
+        <aside>
+          <div class="card">
+            <div class="h">Upcoming Exams & Alerts</div>
+            <div id="exam-list" class="muted">No exams added. Add exam alerts to receive countdown alarms.</div>
+            <div style="margin-top:8px;display:flex;gap:8px">
+              <input id="exam-title" placeholder="Exam title" />
+              <input id="exam-date" type="date" />
+              <button id="add-exam">Add</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="h">Quick Stats</div>
+            <div id="quick-stats" class="muted">XP: 0 • Points: 0 • Badges: 0</div>
+          </div>
+
+          <div class="card">
+            <div class="h">Study Challenges</div>
+            <div id="challenges" class="muted">No active challenge. Create a 7-day focus challenge to build streaks.</div>
+          </div>
+
+        </aside>
+      </div>
+
+    </main>
+
+    <footer>
+      Built with ❤️ — Save this file as <code>study-partner.html</code> and open in Chrome for full features (TTS, speech recognition & notifications require HTTPS or localhost).
+    </footer>
+  </div>
+
+  <script>
+    /* ---------- Simple SPA navigation ---------- */
+    document.querySelectorAll('.nav button').forEach(btn=>btn.addEventListener('click',()=>{
+      document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      showView(btn.dataset.view);
+    }));
+    function showView(name){
+      document.querySelectorAll('.view').forEach(v=>v.style.display='none');
+      const el = document.getElementById('view-'+name) || document.getElementById('view-dashboard');
+      el.style.display='block';
+    }
+
+    /* ---------- Local storage helpers ---------- */
+    const DB = {
+      save(key,val){localStorage.setItem(key,JSON.stringify(val));},
+      load(key,def){try{return JSON.parse(localStorage.getItem(key))||def}catch(e){return def}}
+    }
+
+    /* ---------- Simple motivational quotes & streaks ---------- */
+    const quotes = [
+      "Small habits daily make big results.",
+      "Focus on progress, not perfection.",
+      "Study smart: active recall + spaced repetition.",
+      "You don't have to be great to start, but you have to start to be great.",
+      "Break work into sprints — then reward yourself."
+    ];
+    function pickQuote(){return quotes[Math.floor(Math.random()*quotes.length)];}
+    document.getElementById('quote').innerText = pickQuote();
+
+    // XP & streak
+    const state = DB.load('NeverbegN_state',{xp:0,points:0,streak:0,badges:[]});
+    function updateStats(){
+      document.getElementById('progress').innerText = `Progress: ${state.xp} XP • ${state.points} points`;
+      document.getElementById('quick-stats').innerText = `XP: ${state.xp} • Points: ${state.points} • Badges: ${state.badges.length}`;
+      document.getElementById('badges').innerText = state.badges.length ? state.badges.join(', ') : 'No badges yet — complete tasks to earn badges.';
+      document.getElementById('streak').innerText = `Streak: ${state.streak} 🔥`;
+    }
+    updateStats();
+
+    /* ---------- Reader (TTS) ---------- */
+    let synth = window.speechSynthesis;
+    const voiceSelect = document.getElementById('voice-select');
+    function populateVoices(){
+      const voices = synth.getVoices();
+      voiceSelect.innerHTML='';
+      voices.forEach(v=>{
+        const o=document.createElement('option');o.value=v.name;o.text=`${v.name} (${v.lang})`;
+        voiceSelect.appendChild(o);
+      });
+    }
+    populateVoices(); if (speechSynthesis.onvoiceschanged!==undefined) speechSynthesis.onvoiceschanged = populateVoices;
+
+    document.getElementById('read-btn').addEventListener('click',()=>{
+      const txt = document.getElementById('reader-text').value.trim();
+      if(!txt) return alert('Paste some text to read');
+      const u = new SpeechSynthesisUtterance(txt);
+      const voiceName = voiceSelect.value;
+      const voices = synth.getVoices();
+      const chosen = voices.find(v=>v.name===voiceName) || voices[0];
+      if(chosen) u.voice = chosen;
+      u.rate = parseFloat(document.getElementById('rate').value)||1;
+      synth.cancel(); // stop previous
+      synth.speak(u);
+      // award tiny xp
+      state.xp+=2;state.points+=1;DB.save('NeverbegN_state',state);updateStats();
+    });
+    document.getElementById('stop-btn').addEventListener('click',()=>synth.cancel());
+
+    /* ---------- Timetable generation (simple) ---------- */
+    const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    const ttGrid = document.getElementById('tt-grid');
+    function renderTT(){
+      ttGrid.innerHTML='';
+      const plan = DB.load('NeverbegN_timetable',{});
+      days.forEach(day=>{
+        const cell = document.createElement('div');cell.className='tt-cell';
+        const title = document.createElement('div');title.innerHTML=`<strong>${day}</strong>`;
+        cell.appendChild(title);
+        const list = document.createElement('div');
+        const items = plan[day]||[];
+        items.forEach(it=>{const p=document.createElement('div');p.innerText=it;list.appendChild(p)});
+        cell.appendChild(list);
+        cell.addEventListener('click',()=>{
+          const val = prompt('Add module for '+day);
+          if(val){(plan[day]=plan[day]||[]).push(val);DB.save('NeverbegN_timetable',plan);renderTT();}
+        });
+        ttGrid.appendChild(cell);
+      })
+    }
+    renderTT();
+
+    document.getElementById('tt-generate').addEventListener('click',()=>{
+      const subs = document.getElementById('tt-subjects').value.split(',').map(s=>s.trim()).filter(Boolean);
+      const hours = parseFloat(document.getElementById('tt-hours').value)||2;
+      if(!subs.length) return alert('Add subjects');
+      const plan = {};
+      days.forEach((d,idx)=>{
+        plan[d]=[];
+        // rotate subjects across days using simple algorithm
+        for(let h=0;h<Math.max(1,Math.round(hours));h++){
+          const s = subs[(idx+h)%subs.length];
+          plan[d].push(`${s} — ${45}m`);
+        }
+      });
+      DB.save('NeverbegN_timetable',plan);renderTT();
+      // populate today plan
+      document.getElementById('today-plan').innerText = (DB.load('NeverbegN_timetable',{})[days[new Date().getDay()-1]]||[]).join(' • ');
+      state.xp+=5;state.points+=3;DB.save('NeverbegN_state',state);updateStats();
+    });
+
+    /* ---------- Notes & file uploads (stored locally) ---------- */
+    function renderNotes(){
+      const notes = DB.load('NeverbegN_notes',[]);
+      const list = document.getElementById('notes-list');list.innerHTML='';
+      notes.forEach((n,i)=>{
+        const it=document.createElement('div');it.className='note-item';
+        it.innerHTML=`<div><strong>${n.title}</strong><div class=muted>${n.tags.join(', ')}</div></div><div><button data-i='${i}' class='open-note'>Open</button></div>`;
+        list.appendChild(it);
+      });
+      document.querySelectorAll('.open-note').forEach(b=>b.addEventListener('click',e=>{
+        const i = e.target.dataset.i;const notes=DB.load('NeverbegN_notes',[]);const n=notes[i];document.getElementById('note-title').value=n.title;document.getElementById('note-tags').value=n.tags.join(', ');document.getElementById('note-body').value=n.body;
+      }));
+    }
+    renderNotes();
+
+    document.getElementById('save-note').addEventListener('click',()=>{
+      const title=document.getElementById('note-title').value.trim()||'Untitled';
+      const tags=document.getElementById('note-tags').value.split(',').map(s=>s.trim()).filter(Boolean);
+      const body=document.getElementById('note-body').value;
+      const notes = DB.load('NeverbegN_notes',[]);
+      notes.unshift({title,tags,body,created:Date.now()});DB.save('NeverbegN_notes',notes);renderNotes();state.xp+=3;state.points+=2;DB.save('NeverbegN_state',state);updateStats();
+    });
+
+    // file upload stores metadata and file as base64 (careful with large files)
+    document.getElementById('file-upload').addEventListener('change',async(e)=>{
+      const f = e.target.files[0]; if(!f) return;
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        const uploads = DB.load('NeverbegN_uploads',[]);
+        uploads.unshift({name:f.name,type:f.type,size:f.size,data:reader.result,at:Date.now()});DB.save('NeverbegN_uploads',uploads);renderUploads();state.points+=2;DB.save('NeverbegN_state',state);updateStats();
+      };
+      reader.readAsDataURL(f);
+    });
+    function renderUploads(){
+      const ul = DB.load('NeverbegN_uploads',[]);
+      const el = document.getElementById('uploads-list');el.innerHTML='';
+      ul.forEach((u,i)=>{const row=document.createElement('div');row.innerHTML=`<div style='display:flex;justify-content:space-between;align-items:center'><div><strong>${u.name}</strong> <span class='muted'>${Math.round(u.size/1024)}KB</span></div><div><button data-i='${i}' class='open-up'>Open</button></div></div>`;el.appendChild(row)});
+      document.querySelectorAll('.open-up').forEach(b=>b.addEventListener('click',e=>{const i=e.target.dataset.i;const u=DB.load('NeverbegN_uploads',[])[i];window.open(u.data,'_blank');}))
+    }
+    renderUploads();
+
+    /* ---------- Study partner (mock AI) ---------- */
+    function pushMessage(who,text){
+      const ms = document.getElementById('messages');
+      const el=document.createElement('div');el.className='msg '+(who==='user'?'user':'ai');el.innerText=text;ms.appendChild(el);ms.scrollTop=ms.scrollHeight;
+    }
+    document.getElementById('send-chat').addEventListener('click',()=>{
+      const t=document.getElementById('chat-in').value.trim();if(!t) return;pushMessage('user',t);document.getElementById('chat-in').value='';handleBruddy(t);
+    });
+    document.getElementById('NeverbegN-quick-btn').addEventListener('click',()=>{handleBruddy(document.getElementById('NeverbegN-quick-input').value||'Motivate me');});
+
+    function handleBruddy(text){
+      // simple heuristic based mock AI: supports motivate, quiz, summarize, plan
+      const l=text.toLowerCase();
+      if(l.includes('motivat')||l.includes('encourage')){
+        const msg = pickQuote() + ' — remember to take breaks and reward progress.';pushMessage('ai',msg);speakText(msg);
+        state.xp+=2;state.points+=1;state.streak+=1;DB.save('NeverbegN_state',state);updateStats();
+      } else if(l.includes('quiz')){
+        const q='Quick quiz: Explain active recall in one sentence.';pushMessage('ai',q);speakText('Quick quiz ready!');
+      } else if(l.includes('summar')||l.includes('summary')){
+        // naive summarizer: take first sentences
+        const notes = DB.load('NeverbegN_notes',[]);const textAll = notes.map(n=>n.body).join('\n');const summ = textAll.split('.').slice(0,3).join('. ')||'No notes to summarize.';pushMessage('ai',summ);speakText('Here is a short summary.');
+        state.xp+=4;state.points+=3;DB.save('NeverbegN_state',state);updateStats();
+      } else if(l.includes('plan')||l.includes('timetable')){
+        document.querySelector('[data-view=timetable]').click();pushMessage('ai','I opened the Timetable view. Enter subjects and hours and press Generate.');
+      } else {
+        // friendly default
+        const resp = `Hey! I'm NeverbegN — I can motivate, give quick quizzes, summarize notes, and build study plans. Try: "Motivate me", "Quiz me", "Summarize".`;
+        pushMessage('ai',resp);speakText(resp);
+      }
+    }
+
+    /* ---------- Voice chat (SpeechRecognition) ---------- */
+    let recognition=null;const ChatIn = document.getElementById('chat-in');
+    if('webkitSpeechRecognition' in window || 'SpeechRecognition' in window){
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition; recognition = new SR(); recognition.lang='en-US'; recognition.continuous=false; recognition.interimResults=false;
+      recognition.onresult = (e)=>{const t = e.results[0][0].transcript;ChatIn.value=t;pushMessage('user',t);handleBruddy(t);
+      }
+      recognition.onend = ()=>{document.getElementById('voice-chat').classList.remove('active');}
+      document.getElementById('voice-chat').addEventListener('click',()=>{
+        try{recognition.start();document.getElementById('voice-chat').classList.add('active');}catch(e){alert('Voice capture failed: '+e.message)}
+      });
+    } else {document.getElementById('voice-chat').style.display='none';}
+
+    /* ---------- TTS helper for Bruddy responses ---------- */
+    function speakText(text){
+      try{const u=new SpeechSynthesisUtterance(text);u.rate=1;speechSynthesis.cancel();speechSynthesis.speak(u);}catch(e){console.warn(e)}
+    }
+
+    /* ---------- Pomodoro ---------- */
+    let pomoTimer=null;let pomoRemaining=0;
+    function formatTime(s){const m=Math.floor(s/60);const sec=s%60;return `${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`}
+    document.getElementById('pomo-start').addEventListener('click',()=>{
+      const mins = parseInt(document.getElementById('pomo-mins').value)||25; pomoRemaining = mins*60; document.getElementById('pomo-display').innerText = formatTime(pomoRemaining);
+      if(pomoTimer) clearInterval(pomoTimer);
+      pomoTimer = setInterval(()=>{
+        pomoRemaining--; document.getElementById('pomo-display').innerText = formatTime(pomoRemaining);
+        if(pomoRemaining<=0){clearInterval(pomoTimer);pomoTimer=null;notify('Pomodoro complete 🎉','Take a 5 minute break!');state.xp+=5;state.points+=3;DB.save('NeverbegN_state',state);updateStats();}
+      },1000);
+    });
+    document.getElementById('pomo-stop').addEventListener('click',()=>{if(pomoTimer)clearInterval(pomoTimer);pomoTimer=null;document.getElementById('pomo-display').innerText='Stopped';});
+
+    /* ---------- Resources & Videos ---------- */
+    function renderResources(){const rs=DB.load('NeverbegN_resources',[]);const el=document.getElementById('resources-list');el.innerHTML='';rs.forEach((r,i)=>{const div=document.createElement('div');div.className='card';div.style.marginBottom='8px';div.innerHTML=`<div style='display:flex;justify-content:space-between;align-items:center'><div><strong>${r.title}</strong><div class='muted'>${r.link}</div></div><div><button data-i='${i}' class='open-res'>Open</button></div></div>`;el.appendChild(div)});document.querySelectorAll('.open-res').forEach(b=>b.addEventListener('click',e=>{const i=e.target.dataset.i;const r=DB.load('NeverbegN_resources',[])[i];window.open(r.link,'_blank')}))}
+    document.getElementById('add-resource').addEventListener('click',()=>{const t=document.getElementById('resource-title').value||'Untitled';const l=document.getElementById('resource-link').value;if(!l) return alert('Add link');const rs=DB.load('NeverbegN_resources',[]);rs.unshift({title:t,link:l});DB.save('NeverbegN_resources',rs);renderResources();state.points+=1;DB.save('NeverbegN_state',state);updateStats();});
+    renderResources();
+
+    /* ---------- Exams & Alerts ---------- */
+    function renderExams(){const ex=DB.load('NeverbegN_exams',[]);const el=document.getElementById('exam-list');if(!ex.length){el.innerText='No exams added. Add exam alerts to receive countdown alarms.';return}el.innerHTML='';ex.forEach((e,i)=>{const d=new Date(e.date);const diff=Math.max(0,Math.ceil((d-Date.now())/86400000));const row=document.createElement('div');row.innerHTML=`<div style='display:flex;justify-content:space-between'><div><strong>${e.title}</strong><div class='muted'>${d.toDateString()} • ${diff} days left</div></div><div><button data-i='${i}' class='del-ex'>Delete</button></div></div>`;el.appendChild(row)});document.querySelectorAll('.del-ex').forEach(b=>b.addEventListener('click',ev=>{const i=ev.target.dataset.i;const ex=DB.load('NeverbegN_exams',[]);ex.splice(i,1);DB.save('NeverbegN_exams',ex);renderExams();}))}
+    document.getElementById('add-exam').addEventListener('click',()=>{const t=document.getElementById('exam-title').value;const d=document.getElementById('exam-date').value;if(!t||!d) return alert('Provide title and date');const ex=DB.load('NeverbegN_exams',[]);ex.unshift({title:t,date:d});DB.save('NeverbegN_exams',ex);renderExams();state.points+=2;DB.save('NeverbegN_state',state);updateStats();notify('Exam added',''+t+' on '+d);});
+    renderExams();
+
+    /* ---------- Notifications ---------- */
+    document.getElementById('notify-perm').addEventListener('click',async()=>{if(!('Notification' in window)) return alert('Notifications not supported');const p=await Notification.requestPermission();alert('Permission: '+p);});
+    function notify(title,body){if(Notification.permission==='granted') new Notification(title,{body}); else console.log('Notify:',title,body)}
+
+    /* ---------- Quick initializers ---------- */
+    document.getElementById('add-note').addEventListener('click',()=>{document.querySelector('[data-view=notes]').click();document.getElementById('note-title').focus();});
+    document.getElementById('generate-timetable').addEventListener('click',()=>{document.querySelector('[data-view=timetable]').click();});
+    document.getElementById('start-pomo-small').addEventListener('click',()=>{document.querySelector('[data-view=pomodoro]').click();document.getElementById('pomo-mins').value=25;document.getElementById('pomo-start').click();});
+
+    /* ---------- Small onboarding state & reminders ---------- */
+    if(!DB.load('NeverbegN_seen_welcome',false)){DB.save('NeverbegN_seen_welcome',true);pushMessage('ai','Welcome! I am NeverbegN — your friend. Try: "Motivate me", "Quiz me", or paste some notes and ask me to summarize.');}
+
+    /* ---------- Small safety & UX notes (in-app) ---------- */
+    // The demo stores everything locally. For multi-device sync, build a backend with authentication and storage.
+
+    /* ---------- End of file ---------- */
+  </script>
+</body>
+</html>
