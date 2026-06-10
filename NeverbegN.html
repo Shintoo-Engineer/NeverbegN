@@ -1,0 +1,1155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>NeverbegN — AI Study Companion</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Design Tokens ── */
+    :root {
+      --bg-deep:   #07050f;
+      --bg-panel:  #0e0b1e;
+      --bg-card:   #13102a;
+      --bg-card2:  #1a1635;
+      --border:    rgba(138, 99, 255, 0.18);
+      --border-hi: rgba(138, 99, 255, 0.45);
+      --accent:    #8a63ff;
+      --accent2:   #c084fc;
+      --accent3:   #38bdf8;
+      --success:   #34d399;
+      --warn:      #fbbf24;
+      --danger:    #f87171;
+      --text:      #e8e2ff;
+      --text-muted:#8b82b0;
+      --text-dim:  #4f4873;
+      --glow:      0 0 18px rgba(138, 99, 255, 0.3);
+      --glow-sm:   0 0 8px  rgba(138, 99, 255, 0.2);
+      --radius:    12px;
+      --radius-sm: 8px;
+      --shadow:    0 4px 24px rgba(0,0,0,0.5);
+    }
+
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+      background: var(--bg-deep);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Ambient background ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(ellipse 60% 40% at 20% 10%, rgba(138,99,255,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 30% at 80% 80%, rgba(192,132,252,0.08) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 50% at 60% 30%, rgba(56,189,248,0.05) 0%, transparent 60%);
+      pointer-events: none; z-index: 0;
+    }
+
+    /* ── App shell ── */
+    .app {
+      display: grid;
+      grid-template-rows: 60px 1fr 46px;
+      grid-template-columns: 230px 1fr;
+      grid-template-areas:
+        "header header"
+        "sidebar main"
+        "footer footer";
+      min-height: 100vh;
+      position: relative; z-index: 1;
+    }
+
+    /* ── Header ── */
+    header {
+      grid-area: header;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px;
+      background: rgba(14, 11, 30, 0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      position: sticky; top: 0; z-index: 100;
+    }
+
+    .brand { display: flex; gap: 10px; align-items: center; }
+
+    .logo {
+      width: 38px; height: 38px; border-radius: 10px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 16px; color: #fff;
+      box-shadow: var(--glow-sm);
+      flex-shrink: 0;
+    }
+
+    .brand-name { font-size: 16px; font-weight: 700; color: var(--text); }
+    .brand-tag  { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+
+    .header-right { display: flex; gap: 10px; align-items: center; }
+
+    .pill {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 12px; border-radius: 999px;
+      background: rgba(138,99,255,0.15);
+      border: 1px solid var(--border);
+      font-size: 12px; font-weight: 600; color: var(--accent2);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      grid-area: sidebar;
+      padding: 16px 12px;
+      background: rgba(14, 11, 30, 0.6);
+      backdrop-filter: blur(12px);
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; gap: 20px;
+      overflow-y: auto;
+    }
+
+    .nav { display: flex; flex-direction: column; gap: 3px; }
+
+    .nav-label {
+      font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+      color: var(--text-dim); padding: 0 8px; margin-bottom: 4px; margin-top: 4px;
+    }
+
+    .nav button {
+      width: 100%; background: transparent; border: 0;
+      padding: 9px 10px; border-radius: var(--radius-sm);
+      text-align: left; cursor: pointer; color: var(--text-muted);
+      font-family: inherit; font-size: 13px; font-weight: 500;
+      display: flex; align-items: center; gap: 8px;
+      transition: all 0.18s;
+    }
+    .nav button:hover { background: rgba(138,99,255,0.1); color: var(--text); }
+    .nav button.active {
+      background: rgba(138,99,255,0.18);
+      color: var(--accent2);
+      border-left: 2px solid var(--accent);
+      padding-left: 8px;
+    }
+    .nav button .ico { font-size: 15px; width: 18px; text-align: center; }
+
+    .sidebar-divider { height: 1px; background: var(--border); margin: 4px 0; }
+
+    .qa-section .qa-btn {
+      width: 100%; background: rgba(138,99,255,0.1);
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+      padding: 8px 10px; text-align: left; cursor: pointer;
+      color: var(--text-muted); font-family: inherit; font-size: 12px;
+      font-weight: 500; transition: all 0.18s; margin-bottom: 4px;
+    }
+    .qa-btn:hover { background: rgba(138,99,255,0.2); color: var(--text); border-color: var(--border-hi); }
+
+    /* ── Main ── */
+    main {
+      grid-area: main;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 16px;
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      box-shadow: var(--shadow);
+      transition: border-color 0.2s;
+    }
+    .card:hover { border-color: var(--border-hi); }
+
+    .card-inner {
+      background: var(--bg-card2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 12px;
+      margin-top: 10px;
+    }
+
+    .card-title {
+      font-size: 13px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.06em; color: var(--accent2); margin-bottom: 10px;
+      display: flex; align-items: center; gap: 6px;
+    }
+
+    /* ── Form controls ── */
+    input, select, textarea {
+      background: var(--bg-deep);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 8px 10px;
+      color: var(--text);
+      font-family: inherit; font-size: 13px;
+      outline: none; transition: border-color 0.18s, box-shadow 0.18s;
+      width: 100%;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(138,99,255,0.12);
+    }
+    input::placeholder, textarea::placeholder { color: var(--text-dim); }
+    textarea { min-height: 80px; resize: vertical; }
+    select option { background: var(--bg-panel); }
+
+    /* ── Buttons ── */
+    button {
+      cursor: pointer; font-family: inherit; font-weight: 600;
+      font-size: 12px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); padding: 7px 14px;
+      transition: all 0.18s;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-color: transparent; color: #fff;
+      box-shadow: var(--glow-sm);
+    }
+    .btn-primary:hover { filter: brightness(1.15); box-shadow: var(--glow); }
+
+    .btn-secondary {
+      background: rgba(138,99,255,0.12); color: var(--accent2);
+      border-color: var(--border);
+    }
+    .btn-secondary:hover { background: rgba(138,99,255,0.22); border-color: var(--border-hi); }
+
+    .btn-ghost {
+      background: transparent; color: var(--text-muted); border-color: var(--border);
+    }
+    .btn-ghost:hover { color: var(--text); border-color: var(--border-hi); }
+
+    .btn-danger {
+      background: rgba(248,113,113,0.12); color: var(--danger);
+      border-color: rgba(248,113,113,0.25);
+    }
+    .btn-danger:hover { background: rgba(248,113,113,0.2); }
+
+    #notify-perm {
+      background: rgba(138,99,255,0.12); color: var(--accent2);
+      border: 1px solid var(--border); padding: 5px 12px;
+      font-size: 11px;
+    }
+
+    /* ── Muted text ── */
+    .muted { color: var(--text-muted); font-size: 12px; line-height: 1.6; }
+    .text-sm { font-size: 12px; }
+    .row { display: flex; gap: 8px; align-items: center; }
+
+    /* ── View containers ── */
+    .view { animation: fadeIn 0.2s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+    /* ── Dashboard stats ── */
+    .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+    .stat-box {
+      background: var(--bg-card2); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 12px; text-align: center;
+    }
+    .stat-val { font-size: 22px; font-weight: 700; color: var(--accent2); font-family: 'JetBrains Mono', monospace; }
+    .stat-lbl { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+
+    /* ── Quote block ── */
+    .quote-block {
+      border-left: 3px solid var(--accent);
+      padding: 10px 14px;
+      background: rgba(138,99,255,0.06);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+      font-size: 14px; line-height: 1.6; color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    /* ── Reader ── */
+    .reader-controls { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+
+    /* ── Timetable ── */
+    .tt-header-row {
+      display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px;
+      margin-bottom: 4px;
+    }
+    .tt-day-label {
+      text-align: center; font-size: 10px; font-weight: 700;
+      color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .tt-grid {
+      display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px;
+    }
+    .tt-cell {
+      background: var(--bg-card2); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 8px; min-height: 64px;
+      cursor: pointer; transition: all 0.18s; font-size: 11px;
+    }
+    .tt-cell:hover { border-color: var(--accent); background: rgba(138,99,255,0.08); }
+    .tt-cell strong { font-size: 10px; color: var(--accent2); text-transform: uppercase; display: block; margin-bottom: 4px; }
+    .tt-cell .tt-item { color: var(--text-muted); margin-bottom: 2px; }
+
+    /* ── Notes ── */
+    .note-item {
+      padding: 10px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); display: flex;
+      justify-content: space-between; align-items: center;
+      transition: border-color 0.18s; margin-bottom: 6px;
+    }
+    .note-item:hover { border-color: var(--border-hi); }
+
+    /* ── Chat ── */
+    .chat { display: flex; flex-direction: column; gap: 8px; }
+    .messages {
+      overflow-y: auto; padding: 10px; flex: 1;
+      display: flex; flex-direction: column; gap: 8px;
+      height: 360px;
+      background: var(--bg-deep); border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+    .msg { max-width: 80%; padding: 9px 12px; border-radius: 12px; font-size: 13px; line-height: 1.5; }
+    .msg.user {
+      align-self: flex-end;
+      background: linear-gradient(135deg, rgba(138,99,255,0.4), rgba(192,132,252,0.3));
+      border: 1px solid rgba(138,99,255,0.3); color: var(--text);
+      border-radius: 12px 12px 2px 12px;
+    }
+    .msg.ai {
+      align-self: flex-start;
+      background: var(--bg-card2); border: 1px solid var(--border);
+      color: var(--text); border-radius: 12px 12px 12px 2px;
+    }
+    .msg.ai::before { content: '⬡ '; color: var(--accent); font-size: 11px; }
+    .chat-input { display: flex; gap: 8px; }
+
+    /* ── Pomodoro ── */
+    .pomo-display {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 56px; font-weight: 700;
+      color: var(--accent2); text-align: center;
+      letter-spacing: -2px;
+      text-shadow: 0 0 30px rgba(192,132,252,0.4);
+      padding: 24px 0; line-height: 1;
+    }
+    .pomo-ring {
+      width: 180px; height: 180px; margin: 0 auto 16px;
+      border-radius: 50%;
+      border: 3px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      position: relative;
+      background: conic-gradient(var(--accent) 0deg, transparent 0deg);
+      box-shadow: var(--glow), inset 0 0 30px rgba(138,99,255,0.05);
+    }
+    .pomo-ring-inner {
+      width: 150px; height: 150px; border-radius: 50%;
+      background: var(--bg-card);
+      display: flex; align-items: center; justify-content: center;
+      flex-direction: column;
+    }
+    .pomo-time-text { font-family: 'JetBrains Mono', monospace; font-size: 32px; font-weight: 700; color: var(--accent2); }
+    .pomo-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px; }
+
+    /* ── Resources ── */
+    .resource-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); margin-bottom: 6px;
+      transition: border-color 0.18s;
+    }
+    .resource-item:hover { border-color: var(--border-hi); }
+    .resource-link-icon { font-size: 18px; margin-right: 10px; }
+
+    /* ── Exam countdown ── */
+    .exam-item {
+      padding: 10px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); margin-bottom: 6px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .exam-badge {
+      font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      padding: 3px 8px; border-radius: 999px;
+      background: rgba(251,191,36,0.12); color: var(--warn);
+      border: 1px solid rgba(251,191,36,0.25);
+    }
+    .exam-badge.urgent { background: rgba(248,113,113,0.12); color: var(--danger); border-color: rgba(248,113,113,0.25); }
+    .exam-badge.safe { background: rgba(52,211,153,0.12); color: var(--success); border-color: rgba(52,211,153,0.25); }
+
+    /* ── Progress bar ── */
+    .progress-bar-wrap { background: var(--bg-deep); border-radius: 999px; height: 6px; overflow: hidden; margin-top: 6px; }
+    .progress-bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width 0.5s ease; }
+
+    /* ── Badges ── */
+    .badge-chip {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 600;
+      background: rgba(192,132,252,0.12); color: var(--accent2);
+      border: 1px solid rgba(192,132,252,0.25); margin: 2px;
+    }
+
+    /* ── Challenge card ── */
+    .challenge-item {
+      padding: 10px; border-radius: var(--radius-sm);
+      border: 1px solid rgba(56,189,248,0.2);
+      background: rgba(56,189,248,0.05);
+      margin-bottom: 6px;
+    }
+    .challenge-title { font-size: 12px; font-weight: 600; color: var(--accent3); }
+
+    /* ── Footer ── */
+    footer {
+      grid-area: footer;
+      padding: 0 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      background: rgba(14,11,30,0.85);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid var(--border);
+      font-size: 11px; color: var(--text-dim);
+    }
+    footer code { font-family: 'JetBrains Mono', monospace; color: var(--text-muted); }
+    .footer-dot { color: var(--accent); }
+
+    /* ── Scrollbars ── */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border-hi); border-radius: 999px; }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      .app { grid-template-columns: 1fr; grid-template-areas: "header" "main" "footer"; }
+      .sidebar { display: none; }
+      .grid { grid-template-columns: 1fr; }
+      .stat-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    /* ── Glow pulse animation ── */
+    @keyframes glow-pulse { 0%,100%{ box-shadow: var(--glow-sm); } 50%{ box-shadow: var(--glow); } }
+    .btn-primary:not(:hover) { animation: glow-pulse 3s infinite; }
+
+    /* ── Typing indicator ── */
+    .typing { display: flex; gap: 4px; align-items: center; padding: 10px 12px; }
+    .typing span {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--accent); display: inline-block;
+      animation: typingBounce 1.2s infinite;
+    }
+    .typing span:nth-child(2) { animation-delay: 0.2s; }
+    .typing span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typingBounce { 0%,80%,100%{ transform: translateY(0); } 40%{ transform: translateY(-5px); } }
+
+    /* ── Voice active state ── */
+    #voice-chat.active { background: rgba(248,113,113,0.2); color: var(--danger); border-color: var(--danger); animation: none; }
+
+    /* ── Tooltip ── */
+    [data-tip] { position: relative; }
+    [data-tip]:hover::after {
+      content: attr(data-tip);
+      position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+      background: var(--bg-panel); border: 1px solid var(--border);
+      padding: 4px 8px; border-radius: 6px; font-size: 11px; white-space: nowrap;
+      color: var(--text-muted); pointer-events: none; z-index: 999;
+    }
+
+    /* ── Section spacing helpers ── */
+    .mb8 { margin-bottom: 8px; }
+    .mb12 { margin-bottom: 12px; }
+    .mt8 { margin-top: 8px; }
+    .mt12 { margin-top: 12px; }
+    .gap8 { gap: 8px; }
+    .flex { display: flex; }
+    .flex-col { flex-direction: column; }
+    .flex1 { flex: 1; }
+    .w100 { width: 100%; }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ══ HEADER ══ -->
+  <header>
+    <div class="brand">
+      <div class="logo">N</div>
+      <div>
+        <div class="brand-name">NeverbegN</div>
+        <div class="brand-tag">AI Study Companion</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="pill" id="streak">🔥 Streak: 0</div>
+      <button id="notify-perm" data-tip="Enable push notifications">🔔 Notify</button>
+    </div>
+  </header>
+
+  <!-- ══ SIDEBAR ══ -->
+  <aside class="sidebar">
+    <nav class="nav">
+      <div class="nav-label">Workspace</div>
+      <button class="active" data-view="dashboard"><span class="ico">⊞</span>Dashboard</button>
+      <button data-view="reader"><span class="ico">📖</span>Reader (TTS)</button>
+      <button data-view="timetable"><span class="ico">🗓</span>Smart Timetable</button>
+      <button data-view="notes"><span class="ico">📝</span>Notes & Files</button>
+      <button data-view="bruddy"><span class="ico">🤖</span>AI Friend</button>
+
+      <div class="nav-label" style="margin-top:8px">Tools</div>
+      <button data-view="pomodoro"><span class="ico">⏱</span>Pomodoro</button>
+      <button data-view="resources"><span class="ico">🔗</span>Resources</button>
+      <button data-view="settings"><span class="ico">⚙</span>Settings</button>
+    </nav>
+
+    <div class="sidebar-divider"></div>
+
+    <div class="qa-section">
+      <div class="nav-label">Quick Actions</div>
+      <button class="qa-btn" id="add-note">＋ New Note</button>
+      <button class="qa-btn" id="generate-timetable">⚡ Generate Timetable</button>
+      <button class="qa-btn" id="start-pomo-small">▶ Start 25m Pomodoro</button>
+    </div>
+  </aside>
+
+  <!-- ══ MAIN CONTENT ══ -->
+  <main>
+    <div class="grid">
+      <section>
+
+        <!-- ─── DASHBOARD ─── -->
+        <div id="view-dashboard" class="view">
+
+          <div class="stat-grid mb12">
+            <div class="stat-box">
+              <div class="stat-val" id="stat-xp">0</div>
+              <div class="stat-lbl">XP Earned</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-val" id="stat-pts">0</div>
+              <div class="stat-lbl">Points</div>
+            </div>
+            <div class="stat-box">
+              <div class="stat-val" id="stat-streak">0</div>
+              <div class="stat-lbl">Day Streak</div>
+            </div>
+          </div>
+
+          <div class="card mb12">
+            <div class="card-title">📅 Today's Plan</div>
+            <div id="today-plan" class="muted">No plan yet — generate your timetable to auto-populate.</div>
+          </div>
+
+          <div class="card mb12">
+            <div class="card-title">💡 Motivation</div>
+            <div class="quote-block" id="quote">Loading quote…</div>
+            <div class="muted" id="progress">Progress: 0 XP • 0 points</div>
+            <div class="progress-bar-wrap mt8"><div class="progress-bar-fill" id="xp-bar" style="width:0%"></div></div>
+          </div>
+
+          <div class="card mb12">
+            <div class="card-title">🤖 Quick Chat</div>
+            <div class="muted mb8">Ask NeverbegN for a quick boost.</div>
+            <div class="row">
+              <input id="NeverbegN" placeholder="e.g. Motivate me, Quiz me…" class="flex1" />
+              <button class="btn-primary" id="NeverbegN-quick-btn">Ask</button>
+            </div>
+            <div id="NeverbegN-quick" class="muted mt8"></div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">🏅 Badges</div>
+            <div id="badges" class="muted">Complete tasks to earn badges.</div>
+          </div>
+        </div>
+
+        <!-- ─── READER ─── -->
+        <div id="view-reader" class="view" style="display:none">
+          <div class="card">
+            <div class="card-title">📖 Text-to-Speech Reader</div>
+            <textarea id="reader-text" placeholder="Paste any text here and press Read…">Welcome to NeverbegN — your AI study friend. Paste any text and press Read to listen.</textarea>
+            <div class="reader-controls">
+              <select id="voice-select" style="flex:1"></select>
+              <select id="rate" style="width:100px">
+                <option value="1">Speed 1×</option>
+                <option value="0.8">0.8×</option>
+                <option value="1.25">1.25×</option>
+                <option value="1.5">1.5×</option>
+                <option value="2">2×</option>
+              </select>
+              <button class="btn-primary" id="read-btn">▶ Read</button>
+              <button class="btn-ghost" id="stop-btn">■ Stop</button>
+            </div>
+            <div class="muted mt8">Tip: Works best in Chrome on localhost or HTTPS.</div>
+          </div>
+        </div>
+
+        <!-- ─── TIMETABLE ─── -->
+        <div id="view-timetable" class="view" style="display:none">
+          <div class="card">
+            <div class="card-title">🗓 Smart Timetable</div>
+            <div class="row mb12" style="flex-wrap:wrap">
+              <input id="tt-subjects" placeholder="Subjects e.g. Math, Physics, Chemistry" class="flex1" />
+              <input id="tt-hours" placeholder="Hours/day" style="width:100px" type="number" min="1" max="12" />
+              <button class="btn-primary" id="tt-generate">⚡ Generate</button>
+            </div>
+            <div class="tt-header-row" id="tt-header"></div>
+            <div class="tt-grid" id="tt-grid"></div>
+            <div class="muted mt8">Click any cell to add or edit a module for that day.</div>
+          </div>
+        </div>
+
+        <!-- ─── NOTES ─── -->
+        <div id="view-notes" class="view" style="display:none">
+          <div class="card">
+            <div class="card-title">📝 Notes & Files</div>
+            <div class="row mb8" style="flex-wrap:wrap">
+              <input id="note-title" placeholder="Note title" style="width:160px" />
+              <input id="note-tags" placeholder="Tags (comma-separated)" class="flex1" />
+              <button class="btn-primary" id="save-note">Save</button>
+              <label style="cursor:pointer">
+                <span class="btn-ghost" style="display:inline-flex;padding:7px 12px;font-size:12px">📎 Upload</span>
+                <input type="file" id="file-upload" style="display:none;width:auto" />
+              </label>
+            </div>
+            <div class="row" style="align-items:flex-start;gap:12px">
+              <textarea id="note-body" placeholder="Write or paste your notes here…" style="flex:1;min-height:180px"></textarea>
+              <div style="width:280px;display:flex;flex-direction:column;gap:10px">
+                <div class="card-inner">
+                  <div class="card-title" style="font-size:11px">Saved Notes</div>
+                  <div id="notes-list"></div>
+                </div>
+                <div class="card-inner">
+                  <div class="card-title" style="font-size:11px">Uploads</div>
+                  <div id="uploads-list" class="muted">No uploads yet.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ─── AI FRIEND ─── -->
+        <div id="view-bruddy" class="view" style="display:none">
+          <div class="card">
+            <div class="card-title">🤖 NeverbegN — AI Study Friend</div>
+            <div class="chat">
+              <div class="messages" id="messages"></div>
+              <div class="chat-input mt8">
+                <input id="chat-in" placeholder="Ask anything — Motivate me, Quiz me, Summarize…" class="flex1" />
+                <button class="btn-primary" id="send-chat">Send</button>
+                <button class="btn-ghost" id="voice-chat" data-tip="Voice input">🎤</button>
+              </div>
+            </div>
+            <div class="muted mt8">Try: "Motivate me", "Quiz me", "Summarize my notes", "Plan my week"</div>
+          </div>
+        </div>
+
+        <!-- ─── POMODORO ─── -->
+        <div id="view-pomodoro" class="view" style="display:none">
+          <div class="card">
+            <div class="card-title">⏱ Pomodoro Focus Timer</div>
+            <div class="pomo-ring" id="pomo-ring">
+              <div class="pomo-ring-inner">
+                <div class="pomo-time-text" id="pomo-display">25:00</div>
+                <div class="pomo-label" id="pomo-status">Ready</div>
+              </div>
+            </div>
+            <div class="row" style="justify-content:center;gap:10px;flex-wrap:wrap;margin-top:4px">
+              <div style="display:flex;align-items:center;gap:6px">
+                <label class="muted text-sm">Minutes:</label>
+                <input id="pomo-mins" type="number" value="25" style="width:70px" min="1" max="120" />
+              </div>
+              <button class="btn-primary" id="pomo-start">▶ Start</button>
+              <button class="btn-ghost" id="pomo-stop">■ Stop</button>
+            </div>
+            <div class="muted mt12" style="text-align:center">Complete a session to earn +5 XP and +3 Points.</div>
+          </div>
+        </div>
+
+        <!-- ─── RESOURCES ─── -->
+        <div id="view-resources" class="view" style="display:none">
+          <div class="card">
+            <div class="card-title">🔗 Resources & Videos</div>
+            <div class="row mb12" style="flex-wrap:wrap">
+              <input id="resource-title" placeholder="Title" style="width:160px" />
+              <input id="resource-link" placeholder="URL (YouTube, docs, etc.)" class="flex1" />
+              <button class="btn-primary" id="add-resource">＋ Add</button>
+            </div>
+            <div id="resources-list" class="muted">No resources added yet.</div>
+          </div>
+        </div>
+
+        <!-- ─── SETTINGS ─── -->
+        <div id="view-settings" class="view" style="display:none">
+          <div class="card">
+            <div class="card-title">⚙ Settings</div>
+            <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px">
+              <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--text-muted)">
+                Skill Level
+                <select id="skill-level" style="width:140px">
+                  <option>Beginner</option><option>Intermediate</option><option>Pro</option>
+                </select>
+              </label>
+              <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--text-muted)">
+                Study Style
+                <select id="study-style" style="width:140px">
+                  <option>Silent</option><option>Discussion</option><option>Pomodoro</option>
+                </select>
+              </label>
+              <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-muted);cursor:pointer">
+                <input id="daily-motivator" type="checkbox" checked style="width:auto" />
+                Daily motivator
+              </label>
+            </div>
+            <div class="card-inner">
+              <div class="card-title" style="font-size:11px">⚠ Data Storage</div>
+              <div class="muted">All data is stored locally in your browser. Nothing is sent to a server. For multi-device sync, a backend would be required.</div>
+            </div>
+            <button class="btn-danger mt12" id="clear-data" style="font-size:12px">🗑 Clear All Data</button>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ─── RIGHT SIDEBAR PANELS ─── -->
+      <aside style="display:flex;flex-direction:column;gap:14px">
+
+        <div class="card">
+          <div class="card-title">📆 Upcoming Exams</div>
+          <div id="exam-list" class="muted mb8">No exams added.</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <input id="exam-title" placeholder="Exam title" />
+            <input id="exam-date" type="date" />
+            <button class="btn-primary w100" id="add-exam">＋ Add Exam</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">📊 Quick Stats</div>
+          <div id="quick-stats" class="muted">XP: 0 • Points: 0 • Badges: 0</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">🏆 Challenges</div>
+          <div id="challenges">
+            <div class="challenge-item">
+              <div class="challenge-title">7-Day Focus Streak</div>
+              <div class="muted mt8 text-sm">Complete a Pomodoro each day for 7 days.</div>
+              <div class="progress-bar-wrap mt8"><div class="progress-bar-fill" id="challenge-bar" style="width:0%"></div></div>
+            </div>
+          </div>
+        </div>
+
+      </aside>
+    </div>
+  </main>
+
+  <!-- ══ FOOTER ══ -->
+  <footer>
+    <span>Built with <span class="footer-dot">♥</span> — open in Chrome for full TTS & speech features</span>
+    <span>Save as <code>neverbegn.html</code> <span class="footer-dot">•</span> HTTPS/localhost required for voice</span>
+  </footer>
+
+</div>
+
+<script>
+  /* ════════════════════════════════════════════
+     NeverbegN — Advanced Single-file App
+  ════════════════════════════════════════════ */
+
+  /* ── Navigation ── */
+  document.querySelectorAll('.nav button[data-view]').forEach(btn => btn.addEventListener('click', () => {
+    document.querySelectorAll('.nav button[data-view]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    showView(btn.dataset.view);
+  }));
+  function showView(name) {
+    document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
+    const el = document.getElementById('view-' + name) || document.getElementById('view-dashboard');
+    el.style.display = 'block';
+  }
+
+  /* ── LocalStorage DB ── */
+  const DB = {
+    save(key, val) { localStorage.setItem(key, JSON.stringify(val)); },
+    load(key, def) { try { return JSON.parse(localStorage.getItem(key)) ?? def; } catch { return def; } }
+  };
+
+  /* ── State ── */
+  const state = DB.load('NBG_state', { xp: 0, points: 0, streak: 0, badges: [] });
+
+  /* ── Quotes ── */
+  const quotes = [
+    "Small habits, compounded daily, make extraordinary results.",
+    "Focus on progress, not perfection.",
+    "Active recall + spaced repetition = unstoppable memory.",
+    "You don't have to be great to start, but you have to start to be great.",
+    "Break work into sprints — then celebrate the win.",
+    "Every expert was once a beginner who refused to quit.",
+    "Discipline is choosing between what you want now and what you want most."
+  ];
+  function pickQuote() { return quotes[Math.floor(Math.random() * quotes.length)]; }
+  document.getElementById('quote').innerText = pickQuote();
+
+  /* ── Stats update ── */
+  function updateStats() {
+    const xp = state.xp, pts = state.points, str = state.streak;
+    document.getElementById('stat-xp').innerText    = xp;
+    document.getElementById('stat-pts').innerText   = pts;
+    document.getElementById('stat-streak').innerText = str;
+    document.getElementById('progress').innerText   = `Progress: ${xp} XP • ${pts} points`;
+    document.getElementById('quick-stats').innerText = `XP: ${xp} • Points: ${pts} • Badges: ${state.badges.length}`;
+    document.getElementById('streak').innerText      = `🔥 Streak: ${str}`;
+    document.getElementById('xp-bar').style.width   = Math.min(100, (xp % 100)) + '%';
+    document.getElementById('challenge-bar').style.width = Math.min(100, (str / 7) * 100) + '%';
+    // Badges
+    const badgeEl = document.getElementById('badges');
+    if (state.badges.length) {
+      badgeEl.innerHTML = state.badges.map(b => `<span class="badge-chip">${b}</span>`).join('');
+    } else {
+      badgeEl.innerText = 'Complete tasks to earn badges.';
+    }
+    // Award badges
+    if (xp >= 10 && !state.badges.includes('⚡ First Steps')) { state.badges.push('⚡ First Steps'); DB.save('NBG_state', state); }
+    if (xp >= 50 && !state.badges.includes('🔥 On Fire'))    { state.badges.push('🔥 On Fire');    DB.save('NBG_state', state); }
+    if (str >= 3 && !state.badges.includes('📅 3-Day Streak')){ state.badges.push('📅 3-Day Streak');DB.save('NBG_state', state); }
+  }
+  updateStats();
+
+  /* ── Reader (TTS) ── */
+  const synth = window.speechSynthesis;
+  const voiceSelect = document.getElementById('voice-select');
+  function populateVoices() {
+    const voices = synth.getVoices();
+    voiceSelect.innerHTML = '';
+    voices.forEach(v => {
+      const o = document.createElement('option'); o.value = v.name;
+      o.text = `${v.name} (${v.lang})`; voiceSelect.appendChild(o);
+    });
+  }
+  populateVoices();
+  if (speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = populateVoices;
+
+  document.getElementById('read-btn').addEventListener('click', () => {
+    const txt = document.getElementById('reader-text').value.trim();
+    if (!txt) return alert('Paste some text to read');
+    const u = new SpeechSynthesisUtterance(txt);
+    const chosen = synth.getVoices().find(v => v.name === voiceSelect.value);
+    if (chosen) u.voice = chosen;
+    u.rate = parseFloat(document.getElementById('rate').value) || 1;
+    synth.cancel(); synth.speak(u);
+    state.xp += 2; state.points += 1; DB.save('NBG_state', state); updateStats();
+  });
+  document.getElementById('stop-btn').addEventListener('click', () => synth.cancel());
+
+  /* ── Timetable ── */
+  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const ttGrid = document.getElementById('tt-grid');
+  // Render headers
+  const ttHeader = document.getElementById('tt-header');
+  days.forEach(d => { const h = document.createElement('div'); h.className = 'tt-day-label'; h.innerText = d; ttHeader.appendChild(h); });
+
+  function renderTT() {
+    ttGrid.innerHTML = '';
+    const plan = DB.load('NBG_timetable', {});
+    days.forEach(day => {
+      const cell = document.createElement('div'); cell.className = 'tt-cell';
+      const title = document.createElement('strong'); title.innerText = day; cell.appendChild(title);
+      const items = plan[day] || [];
+      items.forEach(it => { const p = document.createElement('div'); p.className = 'tt-item'; p.innerText = '• ' + it; cell.appendChild(p); });
+      cell.addEventListener('click', () => {
+        const val = prompt('Add module for ' + day);
+        if (val) { (plan[day] = plan[day] || []).push(val); DB.save('NBG_timetable', plan); renderTT(); }
+      });
+      ttGrid.appendChild(cell);
+    });
+  }
+  renderTT();
+
+  document.getElementById('tt-generate').addEventListener('click', () => {
+    const subs = document.getElementById('tt-subjects').value.split(',').map(s => s.trim()).filter(Boolean);
+    const hours = parseFloat(document.getElementById('tt-hours').value) || 2;
+    if (!subs.length) return alert('Enter at least one subject');
+    const plan = {};
+    days.forEach((d, idx) => {
+      plan[d] = [];
+      for (let h = 0; h < Math.max(1, Math.round(hours)); h++) {
+        plan[d].push(`${subs[(idx + h) % subs.length]} — 45m`);
+      }
+    });
+    DB.save('NBG_timetable', plan); renderTT();
+    const today = DB.load('NBG_timetable', {})[days[(new Date().getDay() + 6) % 7]] || [];
+    document.getElementById('today-plan').innerText = today.join(' • ') || 'No plan for today.';
+    state.xp += 5; state.points += 3; DB.save('NBG_state', state); updateStats();
+  });
+
+  /* ── Notes ── */
+  function renderNotes() {
+    const notes = DB.load('NBG_notes', []);
+    const list = document.getElementById('notes-list'); list.innerHTML = '';
+    if (!notes.length) { list.innerHTML = '<div class="muted">No notes yet.</div>'; return; }
+    notes.forEach((n, i) => {
+      const it = document.createElement('div'); it.className = 'note-item';
+      it.innerHTML = `<div><div style="font-size:12px;font-weight:600">${n.title}</div><div class="muted" style="font-size:11px">${n.tags.join(', ')}</div></div><button class="btn-ghost open-note text-sm" data-i="${i}" style="padding:4px 8px;font-size:11px">Open</button>`;
+      list.appendChild(it);
+    });
+    document.querySelectorAll('.open-note').forEach(b => b.addEventListener('click', e => {
+      const n = DB.load('NBG_notes', [])[e.target.dataset.i];
+      document.getElementById('note-title').value = n.title;
+      document.getElementById('note-tags').value  = n.tags.join(', ');
+      document.getElementById('note-body').value  = n.body;
+    }));
+  }
+  renderNotes();
+
+  document.getElementById('save-note').addEventListener('click', () => {
+    const title = document.getElementById('note-title').value.trim() || 'Untitled';
+    const tags  = document.getElementById('note-tags').value.split(',').map(s => s.trim()).filter(Boolean);
+    const body  = document.getElementById('note-body').value;
+    const notes = DB.load('NBG_notes', []);
+    notes.unshift({ title, tags, body, created: Date.now() });
+    DB.save('NBG_notes', notes); renderNotes();
+    state.xp += 3; state.points += 2; DB.save('NBG_state', state); updateStats();
+  });
+
+  /* ── File uploads ── */
+  document.getElementById('file-upload').addEventListener('change', async e => {
+    const f = e.target.files[0]; if (!f) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const uploads = DB.load('NBG_uploads', []);
+      uploads.unshift({ name: f.name, type: f.type, size: f.size, data: reader.result, at: Date.now() });
+      DB.save('NBG_uploads', uploads); renderUploads();
+      state.points += 2; DB.save('NBG_state', state); updateStats();
+    };
+    reader.readAsDataURL(f);
+  });
+  function renderUploads() {
+    const ul = DB.load('NBG_uploads', []);
+    const el = document.getElementById('uploads-list'); el.innerHTML = '';
+    if (!ul.length) { el.innerHTML = '<div class="muted">No uploads yet.</div>'; return; }
+    ul.forEach((u, i) => {
+      const row = document.createElement('div'); row.className = 'note-item';
+      row.innerHTML = `<div><div style="font-size:12px;font-weight:600">${u.name}</div><div class="muted" style="font-size:11px">${Math.round(u.size / 1024)} KB</div></div><button class="btn-ghost open-up" data-i="${i}" style="padding:4px 8px;font-size:11px">Open</button>`;
+      el.appendChild(row);
+    });
+    document.querySelectorAll('.open-up').forEach(b => b.addEventListener('click', e => {
+      const u = DB.load('NBG_uploads', [])[e.target.dataset.i]; window.open(u.data, '_blank');
+    }));
+  }
+  renderUploads();
+
+  /* ── Chat / AI Friend ── */
+  function pushMessage(who, text, typing = false) {
+    const ms = document.getElementById('messages');
+    if (typing) {
+      const t = document.createElement('div'); t.className = 'msg ai'; t.id = 'typing-indicator';
+      t.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
+      ms.appendChild(t); ms.scrollTop = ms.scrollHeight; return;
+    }
+    document.getElementById('typing-indicator')?.remove();
+    const el = document.createElement('div'); el.className = 'msg ' + (who === 'user' ? 'user' : 'ai');
+    el.innerText = text; ms.appendChild(el); ms.scrollTop = ms.scrollHeight;
+  }
+
+  function handleBruddy(text) {
+    const l = text.toLowerCase();
+    pushMessage('ai', '', true); // show typing
+    setTimeout(() => {
+      if (l.includes('motivat') || l.includes('encourage') || l.includes('boost')) {
+        const msg = pickQuote() + ' — keep going, every step forward counts.';
+        pushMessage('ai', msg); speakText(msg);
+        state.xp += 2; state.points += 1; state.streak += 1;
+      } else if (l.includes('quiz')) {
+        const qs = ['What is active recall?', 'Explain spaced repetition in one sentence.', 'What is the Pomodoro Technique?', 'Describe the Feynman Learning Method.'];
+        const q = qs[Math.floor(Math.random() * qs.length)];
+        pushMessage('ai', '📝 Quick quiz: ' + q); speakText('Quiz ready!');
+      } else if (l.includes('summar')) {
+        const notes = DB.load('NBG_notes', []);
+        const textAll = notes.map(n => n.body).join('\n');
+        const summ = textAll.split('.').slice(0, 3).join('. ') || 'No notes to summarize yet. Add some notes first!';
+        pushMessage('ai', '📋 Summary: ' + summ); speakText('Here is a short summary.');
+        state.xp += 4; state.points += 3;
+      } else if (l.includes('plan') || l.includes('timetable')) {
+        document.querySelector('[data-view=timetable]').click();
+        pushMessage('ai', '📅 Opened Timetable. Enter subjects and hours, then hit Generate.');
+      } else if (l.includes('note')) {
+        document.querySelector('[data-view=notes]').click();
+        pushMessage('ai', '📝 Opened Notes. Write anything and hit Save to store it.');
+      } else if (l.includes('pomodoro') || l.includes('timer') || l.includes('focus')) {
+        document.querySelector('[data-view=pomodoro]').click();
+        pushMessage('ai', '⏱ Opened Pomodoro. Set your duration and press Start to begin your focus session.');
+      } else {
+        pushMessage('ai', `👋 I'm NeverbegN — your AI study companion.\n\nTry:\n• "Motivate me"\n• "Quiz me"\n• "Summarize my notes"\n• "Open timetable"\n• "Start a focus session"`);
+      }
+      DB.save('NBG_state', state); updateStats();
+    }, 700);
+  }
+
+  document.getElementById('send-chat').addEventListener('click', () => {
+    const t = document.getElementById('chat-in').value.trim(); if (!t) return;
+    pushMessage('user', t); document.getElementById('chat-in').value = ''; handleBruddy(t);
+  });
+  document.getElementById('chat-in').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('send-chat').click(); });
+
+  document.getElementById('NeverbegN-quick-btn').addEventListener('click', () => {
+    const t = document.getElementById('NeverbegN').value || 'Motivate me';
+    document.getElementById('NeverbegN-quick').innerText = '…';
+    // Quick inline reply
+    setTimeout(() => {
+      const msg = pickQuote();
+      document.getElementById('NeverbegN-quick').innerText = '⬡ ' + msg;
+      state.xp += 1; state.points += 1; DB.save('NBG_state', state); updateStats();
+    }, 500);
+  });
+
+  /* ── Voice chat ── */
+  let recognition = null;
+  if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SR(); recognition.lang = 'en-US'; recognition.continuous = false;
+    recognition.onresult = e => {
+      const t = e.results[0][0].transcript;
+      document.getElementById('chat-in').value = t;
+      pushMessage('user', t); handleBruddy(t);
+    };
+    recognition.onend = () => document.getElementById('voice-chat').classList.remove('active');
+    document.getElementById('voice-chat').addEventListener('click', () => {
+      try { recognition.start(); document.getElementById('voice-chat').classList.add('active'); }
+      catch(e) { alert('Voice capture failed: ' + e.message); }
+    });
+  } else { document.getElementById('voice-chat').style.display = 'none'; }
+
+  /* ── TTS helper ── */
+  function speakText(text) {
+    try { const u = new SpeechSynthesisUtterance(text); u.rate = 1; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch(e) {}
+  }
+
+  /* ── Pomodoro ── */
+  let pomoTimer = null, pomoRemaining = 0, pomoTotal = 0;
+  function formatTime(s) { return `${String(Math.floor(s / 60)).padStart(2,'0')}:${String(s % 60).padStart(2,'0')}`; }
+  function updatePomoRing(remaining, total) {
+    const pct = total > 0 ? ((total - remaining) / total) : 0;
+    const deg = Math.round(pct * 360);
+    document.getElementById('pomo-ring').style.background =
+      `conic-gradient(var(--accent) ${deg}deg, rgba(138,99,255,0.1) ${deg}deg)`;
+  }
+
+  document.getElementById('pomo-start').addEventListener('click', () => {
+    const mins = parseInt(document.getElementById('pomo-mins').value) || 25;
+    pomoRemaining = mins * 60; pomoTotal = pomoRemaining;
+    document.getElementById('pomo-display').innerText = formatTime(pomoRemaining);
+    document.getElementById('pomo-status').innerText = 'Focusing…';
+    updatePomoRing(pomoRemaining, pomoTotal);
+    if (pomoTimer) clearInterval(pomoTimer);
+    pomoTimer = setInterval(() => {
+      pomoRemaining--;
+      document.getElementById('pomo-display').innerText = formatTime(pomoRemaining);
+      updatePomoRing(pomoRemaining, pomoTotal);
+      if (pomoRemaining <= 0) {
+        clearInterval(pomoTimer); pomoTimer = null;
+        document.getElementById('pomo-status').innerText = 'Done! 🎉';
+        notify('Pomodoro Complete 🎉', 'Take a 5-minute break!');
+        state.xp += 5; state.points += 3; state.streak += 1;
+        DB.save('NBG_state', state); updateStats();
+      }
+    }, 1000);
+  });
+
+  document.getElementById('pomo-stop').addEventListener('click', () => {
+    if (pomoTimer) clearInterval(pomoTimer); pomoTimer = null;
+    document.getElementById('pomo-display').innerText = 'Stopped';
+    document.getElementById('pomo-status').innerText = 'Stopped';
+    document.getElementById('pomo-ring').style.background = 'conic-gradient(var(--border) 360deg, transparent 0deg)';
+  });
+
+  /* ── Resources ── */
+  function renderResources() {
+    const rs = DB.load('NBG_resources', []);
+    const el = document.getElementById('resources-list');
+    if (!rs.length) { el.innerHTML = '<div class="muted">No resources yet. Add a YouTube link or any URL above.</div>'; return; }
+    el.innerHTML = '';
+    rs.forEach((r, i) => {
+      const isYT = r.link.includes('youtube') || r.link.includes('youtu.be');
+      const div = document.createElement('div'); div.className = 'resource-item';
+      div.innerHTML = `<div style="display:flex;align-items:center;flex:1;gap:8px"><span class="resource-link-icon">${isYT ? '▶' : '🔗'}</span><div><div style="font-size:13px;font-weight:600">${r.title}</div><div class="muted" style="font-size:11px">${r.link.slice(0,50)}…</div></div></div><button class="btn-primary open-res" data-i="${i}" style="padding:5px 10px;font-size:11px">Open</button>`;
+      el.appendChild(div);
+    });
+    document.querySelectorAll('.open-res').forEach(b => b.addEventListener('click', e => {
+      const r = DB.load('NBG_resources', [])[e.target.dataset.i]; window.open(r.link, '_blank');
+    }));
+  }
+  document.getElementById('add-resource').addEventListener('click', () => {
+    const t = document.getElementById('resource-title').value || 'Untitled';
+    const l = document.getElementById('resource-link').value;
+    if (!l) return alert('Please add a link');
+    const rs = DB.load('NBG_resources', []); rs.unshift({ title: t, link: l });
+    DB.save('NBG_resources', rs); renderResources();
+    state.points += 1; DB.save('NBG_state', state); updateStats();
+  });
+  renderResources();
+
+  /* ── Exams ── */
+  function renderExams() {
+    const ex = DB.load('NBG_exams', []);
+    const el = document.getElementById('exam-list');
+    if (!ex.length) { el.innerHTML = '<div class="muted mb8">No exams added.</div>'; return; }
+    el.innerHTML = '';
+    ex.forEach((e, i) => {
+      const d = new Date(e.date);
+      const diff = Math.max(0, Math.ceil((d - Date.now()) / 86400000));
+      const cls = diff <= 3 ? 'urgent' : diff <= 10 ? '' : 'safe';
+      const row = document.createElement('div'); row.className = 'exam-item';
+      row.innerHTML = `<div><div style="font-size:12px;font-weight:600">${e.title}</div><div class="muted" style="font-size:11px">${d.toDateString()}</div></div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px"><span class="exam-badge ${cls}">${diff}d</span><button class="btn-ghost del-ex" data-i="${i}" style="font-size:10px;padding:2px 7px">✕</button></div>`;
+      el.appendChild(row);
+    });
+    document.querySelectorAll('.del-ex').forEach(b => b.addEventListener('click', ev => {
+      const ex = DB.load('NBG_exams', []); ex.splice(ev.target.dataset.i, 1);
+      DB.save('NBG_exams', ex); renderExams();
+    }));
+  }
+  document.getElementById('add-exam').addEventListener('click', () => {
+    const t = document.getElementById('exam-title').value;
+    const d = document.getElementById('exam-date').value;
+    if (!t || !d) return alert('Provide exam title and date');
+    const ex = DB.load('NBG_exams', []); ex.unshift({ title: t, date: d });
+    DB.save('NBG_exams', ex); renderExams();
+    state.points += 2; DB.save('NBG_state', state); updateStats();
+    notify('Exam Added', t + ' on ' + d);
+  });
+  renderExams();
+
+  /* ── Notifications ── */
+  document.getElementById('notify-perm').addEventListener('click', async () => {
+    if (!('Notification' in window)) return alert('Notifications not supported in this browser.');
+    const p = await Notification.requestPermission();
+    alert('Notification permission: ' + p);
+  });
+  function notify(title, body) {
+    if (Notification.permission === 'granted') new Notification(title, { body });
+    else console.log('Notify:', title, body);
+  }
+
+  /* ── Quick actions ── */
+  document.getElementById('add-note').addEventListener('click', () => { document.querySelector('[data-view=notes]').click(); document.getElementById('note-title').focus(); });
+  document.getElementById('generate-timetable').addEventListener('click', () => { document.querySelector('[data-view=timetable]').click(); });
+  document.getElementById('start-pomo-small').addEventListener('click', () => {
+    document.querySelector('[data-view=pomodoro]').click();
+    document.getElementById('pomo-mins').value = 25;
+    document.getElementById('pomo-start').click();
+  });
+
+  /* ── Clear data ── */
+  document.getElementById('clear-data').addEventListener('click', () => {
+    if (confirm('Clear all NeverbegN data? This cannot be undone.')) {
+      ['NBG_state','NBG_notes','NBG_uploads','NBG_timetable','NBG_exams','NBG_resources','NBG_seen_welcome'].forEach(k => localStorage.removeItem(k));
+      location.reload();
+    }
+  });
+
+  /* ── Welcome message ── */
+  if (!DB.load('NBG_seen_welcome', false)) {
+    DB.save('NBG_seen_welcome', true);
+    setTimeout(() => pushMessage('ai', '👋 Welcome! I am NeverbegN — your AI study companion. Try: "Motivate me", "Quiz me", or ask me to summarize your notes.'), 300);
+  }
+</script>
+</body>
+</html>
